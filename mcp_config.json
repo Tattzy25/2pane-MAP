@@ -1,0 +1,14 @@
+{
+    "mcpServers": {
+        "MapboxDevKitServer": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@mapbox/mcp-devkit-server"
+            ],
+            "env": {
+                "MAPBOX_ACCESS_TOKEN": "pk.eyJ1IjoiYXZpODdrYXkiLCJhIjoiY205anR3cmh2MGc1NzJsb2FzMjZydDhsdiJ9.xB2k8GD6iZYbW63nQUmOhw"
+            }
+        }
+    }
+}
