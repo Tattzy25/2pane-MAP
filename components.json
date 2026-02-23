@@ -20,6 +20,9 @@
     "hooks": "@/hooks"
   },
   "registries": {
-    "@mapcn": "https://mapcn.dev/r/{name}.json"
+    "@mapcn": "https://mapcn.dev/r/{name}.json",
+    "@diceui": "https://diceui.com/r/{name}.json",
+    "@tool-ui": "https://www.tool-ui.com/r/{name}.json",
+    "@animbits": "https://animbits.dev/r/{name}.json"
   }
 }

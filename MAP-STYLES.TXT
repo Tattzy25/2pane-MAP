@@ -1,0 +1,732 @@
+The Mapbox Styles API lets you read and change map styles, fonts, and images. This API is the basis for Mapbox Studio.
+
+If you use Studio, Mapbox GL JS, or the Mapbox Mobile SDKs, you are already using the Styles API. This documentation is useful for software developers who want to programmatically read and write these resources. It isn't necessary for you to read or understand this reference to design or use Mapbox maps.
+
+You will need to be familiar with the Mapbox Style Specification to use the Styles API. The Mapbox Style Specification defines the structure of map styles and is the open standard that helps Studio communicate with APIs and produce maps that are compatible with Mapbox libraries.
+
+Mapbox styles
+Mapbox Standard
+Style name	Style URL	
+Style image
+Mapbox Standard	
+mapbox://styles/mapbox/standard
+Mapbox Standard
+Mapbox Standard Satellite	
+mapbox://styles/mapbox/standard-satellite
+Mapbox Standard Satellite
+To use Mapbox Standard or Mapbox Standard Satellite, you need to use GL JS v3 or newer on the web and on mobile Mobile Maps SDKs v11 or newer. Unless another style URL is specified, Mapbox Standard is the default map for these SDK versions.
+
+The underlying paradigm to the Standard style is different from other Mapbox styles. Layers in Standard are not modifiable asides from the predefined configuration options. Mapbox manages the basemap experience and only surfaces key global styling configurations - in return, you get a carefully designed, cohesive visual experience and an evergreen map, always featuring the latest data, styling and rendering features compatible with your SDK.
+
+To learn more, you can explore the Getting started docs.
+
+Classic Mapbox styles (Legacy)
+The following Mapbox-owned styles are no longer actively maintained, but prior map styles created with these classic templates will continue to be supported.
+
+Style
+Style URL	
+Preview image
+Mapbox Streets
+mapbox://styles/mapbox/streets-v12
+Mapbox Streets
+Mapbox Outdoors
+mapbox://styles/mapbox/outdoors-v12
+Mapbox Outdoors
+Mapbox Light
+mapbox://styles/mapbox/light-v11
+Mapbox Light
+Mapbox Dark
+mapbox://styles/mapbox/dark-v11
+Mapbox Dark
+Mapbox Satellite
+mapbox://styles/mapbox/satellite-v9
+Mapbox Satellite
+Mapbox Satellite Streets
+mapbox://styles/mapbox/satellite-streets-v12
+Mapbox Satellite Streets
+Mapbox Navigation Day
+mapbox://styles/mapbox/navigation-day-v1
+Mapbox Navigation Day
+Mapbox Navigation Night
+mapbox://styles/mapbox/navigation-night-v1
+Mapbox Navigation Night
+The style object
+A style object is an object that conforms to the Mapbox Style Specification, with some additional account-related properties:
+
+Property	Type	Description
+version	number	The style specification version number.
+name	string	A human-readable name for the style.
+metadata	object	Information about the style that is used in Mapbox Studio.
+sources	object	Sources supply the data that will be displayed on the map.
+layers	array	Layers will be created in the order of this array.
+created	string	The date and time the style was created.
+id	string	The ID of the style.
+modified	string	The date and time the style was last modified.
+owner	string	The username of the style owner.
+visibility	string	Access control for the style, either public or private. Private styles require an access token belonging to the owner. Public styles may be requested with an access token belonging to any user.
+protected	boolean	Indicates whether the style is protected (true) or not (false). Protected styles cannot be edited and deleted.
+draft	boolean	Indicates whether the style is a draft (true) or whether it has been published (false).
+A style object must conform to the following rules:
+
+Must be valid JSON
+Must be aligned to the most recent version of the Mapbox Style Specification
+Can be composed of no more than 15 sources
+Cannot contain any keys in the body of the style beyond those listed in the Style Specification
+The url property in the source object must be a valid Mapbox tileset ID
+Only raster and vector sources are supported
+You can use the gl-style-validate CLI tool with the --mapbox-api-supported flag to validate a style object. Invalid styles will produce a descriptive validation error.
+
+Example style object
+{
+  "version": 8,
+  "name": "{name}",
+  "metadata": "{metadata}",
+  "sources": "{sources}",
+  "sprite": "mapbox://sprites/{username}/{style_id}",
+  "glyphs": "mapbox://fonts/{username}/{fontstack}/{range}.pbf",
+  "layers": ["{layers}"],
+  "created": "2015-10-30T22:18:31.111Z",
+  "id": "{style_id}",
+  "modified": "2015-10-30T22:22:06.077Z",
+  "owner": "{username}",
+  "visibility": "private",
+  "protected": false,
+  "draft": true
+}
+Drafts
+The Styles API supports drafts, so every style can have both published and draft versions. This means that you can make changes to a style without publishing them or deploying them in your app. For each style-related endpoint, you can interact with the draft version of a style by placing draft/ after the style ID, like /styles/v1/{username}/{style_id}/draft/sprite.
+
+Note that the style you see in Studio's style editor is always the draft version. If you make changes to the published version of a style or sprite by calling the API without draft/ in the URI, those changes will not be reflected in the draft version.
+
+Retrieve a style
+get
+https://api.mapbox.com/styles/v1/{username}/{style_id}
+styles:readtoken scope
+Retrieve a style as a JSON document.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to be retrieved.
+Example request: Retrieve a style
+curl "https://api.mapbox.com/styles/v1/examples/cjikt35x83t1z2rnxpdmjs7y7?access_token=pk.eyJ1IjoiYXZpODdrYXkiLCJhIjoiY205anR3cmh2MGc1NzJsb2FzMjZydDhsdiJ9.xB2k8GD6iZYbW63nQUmOhw"
+Response: Retrieve a style
+The returned style object will be in the Mapbox Style format.
+
+Example response: Retrieve a style
+{
+  "version": 8,
+  "name": "Meteorites",
+  "metadata": {
+    "mapbox:origin": "basic-template-v1",
+    "mapbox:autocomposite": true,
+    "mapbox:type": "template",
+    "mapbox:sdk-support": {
+      "js": "0.45.0",
+      "android": "6.0.0",
+      "ios": "4.0.0"
+    }
+  },
+  "center": [74.24426803763072, -2.2507114487818853],
+  "zoom": 0.6851443156248076,
+  "bearing": 0,
+  "pitch": 0,
+  "sources": {
+    "composite": {
+      "url": "mapbox://mapbox.mapbox-streets-v8,examples.0fr72zt8",
+      "type": "vector"
+    }
+  },
+  "sprite": "mapbox://sprites/examples/cjikt35x83t1z2rnxpdmjs7y7",
+  "glyphs": "mapbox://fonts/{username}/{fontstack}/{range}.pbf",
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "layout": {},
+      "paint": {
+        "background-color": []
+      }
+    },
+    {}
+  ],
+  "created": "2015-10-30T22:18:31.111Z",
+  "id": "cjikt35x83t1z2rnxpdmjs7y7",
+  "modified": "2015-10-30T22:22:06.077Z",
+  "owner": "examples",
+  "visibility": "public",
+  "protected": true,
+  "draft": false
+}
+Supported libraries: Retrieve a style
+Mapbox wrapper libraries help you integrate Mapbox APIs into your existing application. The following SDK supports this endpoint:
+
+Mapbox JavaScript SDK
+See the SDK documentation for details and examples of how to use the relevant methods to query this endpoint.
+
+List styles
+get
+https://api.mapbox.com/styles/v1/{username}
+styles:listtoken scope
+Retrieve a list of styles for a specific account. This endpoint supports pagination. Since styles are generally quite large, it's likely that a response to this endpoint will start paginating sooner than other list endpoints. If you have many styles in your account, you may need to repeatedly use the next link relation in the Link header of the response to retrieve them all.
+
+Required parameter	Type	Description
+username	string	The username of the account to which the styles belong.
+You can further refine the results from this endpoint with the following optional parameters:
+
+Optional parameters	Type	Description
+draft	boolean	List only draft styles (true), or return all styles (false, default).
+limit	integer	The maximum number of styles to return.
+start	string	The ID of the style after which to start the listing. Find the style ID in the Link header of a response. See the pagination section for details.
+Example request: List styles
+curl "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN"
+Response: List styles
+This endpoint returns style metadata instead of returning full styles.
+
+Example response: List styles
+[
+  {
+    "version": 8,
+    "name": "My Awesome Style",
+    "created": "{timestamp}",
+    "id": "cige81msw000acnm7tvsnxcp5",
+    "modified": "{timestamp}",
+    "owner": "{username}"
+  },
+  {
+    "version": 8,
+    "name": "My Cool Style",
+    "created": "{timestamp}",
+    "id": "cig9rvfe300009lj9kekr0tm2",
+    "modified": "{timestamp}",
+    "owner": "{username}"
+  }
+]
+Supported libraries: List styles
+Mapbox wrapper libraries help you integrate Mapbox APIs into your existing application. The following SDK supports this endpoint:
+
+Mapbox JavaScript SDK
+See the SDK documentation for details and examples of how to use the relevant methods to query this endpoint.
+
+Retrieve a style ZIP bundle
+get
+https://api.mapbox.com/styles/v1/{username}/{style_id}.zip
+styles:downloadtoken scope
+Note
+Access to this endpoint is available upon request. To request that access be enabled for your account, contact Mapbox support.
+
+Retrieves a ZIP file containing the style JSON, sprite images, referenced custom fonts, and a license file. After retrieval, the style ZIP bundle response is cached for a few minutes, so later requests may return the same content even if the style has been modified in the interim.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to be retrieved.
+Optional path parameters	Type	Description
+draft	string	If used, indicates that the style is a draft and has not been published. For more information, see the Drafts section.
+Example request: Retrieve a style ZIP bundle
+# Request the style bundle for a published style
+curl "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/cjikt35x83t1z2rnxpdmjs7y7.zip?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN"
+
+# Request the style bundle for a draft style
+curl "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/cjikt35x83t1z2rnxpdmjs7y7/draft.zip?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN"
+Response: Retrieve a style ZIP bundle
+The response will be a ZIP file named for the downloaded style. It will contain the relevant style.json, sprite images, referenced custom fonts, and a license.txt file. The hierarchy is illustrated below.
+
+Monochrome-draft(cjikt35x83t1z2rnxpdmjs7y7)/
+├── fonts/
+│   ├── My Font Bold.ttf
+│   └── My Font Regular.ttf
+├── license.txt
+├── sprite_images/
+│   ├── aquarium-11.svg
+│   ├── bank-15.svg
+│   ├── car-11.svg
+│   └── ...
+└── style.json
+Create a style
+post
+https://api.mapbox.com/styles/v1/{username}
+styles:writetoken scope
+Creates a style in your account. The posted style object must conform to the rules outlined in the style object section of this documentation. Invalid styles will produce a descriptive validation error.
+
+Additionally, when you create a style using the Styles API:
+
+The glyphs field will be overwritten to point to your user glyph endpoint, unless it's referring to the Mapbox glyph endpoint, mapbox://fonts/mapbox/{fontstack}/{range}.pbf.
+If the sprite field does not include your username, and the sprite field points to the sprite of a style that either belongs to mapbox or is public, the Styles API will copy all images to the new style's spritesheet and overwrite the sprite value to point to the new style's sprite.
+If the optional name property is not used in the request body, the name of the new style will be automatically set to the style's ID.
+Required parameter	Type	Description
+username	string	The username of the account to which the new style will belong.
+Example request: Create a style
+curl -X POST "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN" \
+  --data @basic-v9.json \
+  --header "Content-Type:application/json"
+Example request body: Create a style
+{
+  "version": 8,
+  "name": "My Awesome Style",
+  "metadata": {},
+  "sources": {
+    "myvectorsource": {
+      "url": "mapbox://{tileset_id}",
+      "type": "vector"
+    },
+    "myrastersource": {
+      "url": "mapbox://{tileset_id}",
+      "type": "raster"
+    }
+  },
+  "glyphs": "mapbox://fonts/{username}/{fontstack}/{range}.pbf",
+  "layers": []
+}
+Response: Create a style
+The style you get back from the API will contain new properties that the server has added: created, id, modified, owner, and draft.
+
+Example response: Create a style
+{
+  "version": 8,
+  "name": "My Awesome Style",
+  "metadata": {},
+  "sources": {
+    "myvectorsource": {
+      "url": "mapbox://{tileset_id}",
+      "type": "vector"
+    },
+    "myrastersource": {
+      "url": "mapbox://{tileset_id}",
+      "type": "raster"
+    }
+  },
+  "sprite": "mapbox://sprites/{username}/{style_id}",
+  "glyphs": "mapbox://fonts/{username}/{fontstack}/{range}.pbf",
+  "layers": [],
+  "created": "2015-10-30T22:18:31.111Z",
+  "id": "{style_id}",
+  "modified": "2015-10-30T22:22:06.077Z",
+  "owner": "{username}",
+  "draft": true
+}
+Supported libraries: Create a style
+Mapbox wrapper libraries help you integrate Mapbox APIs into your existing application. The following SDK supports this endpoint:
+
+Mapbox JavaScript SDK
+See the SDK documentation for details and examples of how to use the relevant methods to query this endpoint.
+
+Update a style
+patch
+https://api.mapbox.com/styles/v1/{username}/{style_id}
+styles:writetoken scope
+Updates an existing style in your account with new content. The request body must be a style object that conforms to the rules outlined in the style object section of this documentation. Invalid styles will produce a descriptive validation error.
+
+Additionally, when you update a style using the Styles API:
+
+The name property, which is optional for creating a style, is required in the request body to update a style.
+If you request a style and then use the unaltered response to update the style, this action will fail. You must remove the created and modified properties before updating a style.
+The glyphs field will be overwritten to point to your user glyph endpoint, unless it's referring to the Mapbox glyph endpoint, mapbox://fonts/mapbox/{fontstack}/{range}.pbf.
+If the sprite field does not include your username, and the sprite field points to the sprite of a style that either belongs to mapbox or is public, the Styles API will copy all images to the updated style's spritesheet and overwrite the sprite value to point to the updated style's sprite.
+Cross-version PATCH requests are rejected.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to be updated.
+Example request: Update a style
+curl -X PATCH "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/{style_id}?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN" \
+  --data @basic-v9.json \
+  --header "Content-Type:application/json"
+Example request body: Update a style
+{
+  "version": 8,
+  "name": "New Style Name",
+  "metadata": {},
+  "sources": {},
+  "sprite": "mapbox://sprites/{username}/{style_id}",
+  "glyphs": "mapbox://fonts/{username}/{fontstack}/{range}.pbf",
+  "layers": [
+    {
+      "id": "new-layer",
+      "type": "background",
+      "paint": {
+        "background-color": "#111"
+      },
+      "interactive": true
+    }
+  ],
+  "owner": "{username}",
+  "draft": true
+}
+Response: Update a style
+A successful request to this endpoint will return the updated style object.
+
+Example response: Update a style
+{
+  "version": 8,
+  "name": "New Style Name",
+  "metadata": {},
+  "sources": {},
+  "sprite": "mapbox://sprites/{username}/{style_id}",
+  "glyphs": "mapbox://fonts/{username}/{fontstack}/{range}.pbf",
+  "layers": [
+    {
+      "id": "new-layer",
+      "type": "background",
+      "paint": {
+        "background-color": "#111"
+      },
+      "interactive": true
+    }
+  ],
+  "created": "2015-10-30T22:18:31.111Z",
+  "id": "{style_id}",
+  "modified": "2015-10-30T22:22:06.077Z",
+  "owner": "{username}",
+  "draft": true
+}
+Supported libraries: Update a style
+Mapbox wrapper libraries help you integrate Mapbox APIs into your existing application. The following SDK supports this endpoint:
+
+Mapbox JavaScript SDK
+See the SDK documentation for details and examples of how to use the relevant methods to query this endpoint.
+
+Delete a style
+delete
+https://api.mapbox.com/styles/v1/{username}/{style_id}
+styles:writetoken scope
+Delete a style. All sprites that belong to this style will also be deleted, and the style will no longer be available.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to be deleted.
+Example request: Delete a style
+curl -X DELETE "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/{style_id}?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN"
+Response: Delete a style
+HTTP 204 No Content
+Supported libraries: Delete a style
+Mapbox wrapper libraries help you integrate Mapbox APIs into your existing application. The following SDK supports this endpoint:
+
+Mapbox JavaScript SDK
+See the SDK documentation for details and examples of how to use the relevant methods to query this endpoint.
+
+Protect a style
+put
+https://api.mapbox.com/styles/v1/{username}/{style_id}/protected
+styles:protecttoken scope
+Note
+Access to this endpoint is available upon request. To request that access be enabled for your account, contact Mapbox support.
+
+Updates the protected status of a style. The request body must be a plain text string either true or false.
+
+Changing the status is only valid for styles without an active draft (which has a modified field ahead of the published version). This update will not change the style's modified field or sprite hashes. Protected styles cannot be edited and deleted using the Styles API or in Mapbox Studio.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to be protected.
+Example request: Protect a style
+curl "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/cjikt35x83t1z2rnxpdmjs7y7/protected?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN" \
+  --data-raw "true" \
+  --header "Content-Type: text/plain"
+Response: Protect a style
+{
+    "protected": true
+}
+Response to invalid request: Protect a draft style
+You cannot protect a style with an active draft. This endpoint will return a 400 Bad Request error.
+
+Publish the draft style or revert to its last published version before protecting.
+
+Request embeddable HTML
+get
+https://api.mapbox.com/styles/v1/{username}/{style_id}.html
+styles:readtoken scope
+Request embeddable or shareable HTML.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to be embedded.
+The embeddable HTML that is returned can be further modified with the following optional query parameters:
+
+Optional path parameters	Type	Description
+draft	string	Retrieve the draft version of a style. For more information, see the Drafts section.
+Optional query parameters	Type	Description
+zoomwheel	boolean	Whether to provide a zoom wheel, which enables a viewer to zoom in and out of the map using the mouse (true, default), or not (false).
+title	string	Display a title box with the map's title, owner, and a default message along the bottom of the map. Possible values are copy (message reads "Copy this style to your account" and provides a Copy button) and view (message reads "Design your own maps with Mapbox Studio" and provides a Sign Up button). The copy option will only work if a style's visibility is public. If this parameter is not used or its value is false, a title box is not displayed.
+fallback	boolean	Serve a fallback raster map (true) or not (false, default).
+mapboxGLVersion	string	Specify a version of Mapbox GL JS to use to render the map.
+mapboxGLGeocoderVersion	string	Specify a version of the Mapbox GL geocoder plugin to use to render the map search box.
+hash	number	Specify a zoom level and location for the map to center on, in the format #zoom/latitude/longitude/bearing/pitch. Bearing and pitch are optional, and both values will default to 0° if not specified. The hash is placed after the access_token in the request.
+Example: Request embeddable HTML
+{/* Map is centered on San Francisco at z15, with a bearing of 45° and a pitch
+of 70°. */}
+<iframe
+  src="https://api.mapbox.com/styles/v1/mapbox/streets-v12.html?title=true&zoomwheel=false&access_token=pk.eyJ1IjoiYXZpODdrYXkiLCJhIjoiY205anR3cmh2MGc1NzJsb2FzMjZydDhsdiJ9.xB2k8GD6iZYbW63nQUmOhw#15/37.771/-122.436/45/70"
+/>
+Supported libraries: Request embeddable HTML
+Mapbox wrapper libraries help you integrate Mapbox APIs into your existing application. The following SDK supports this endpoint:
+
+Mapbox JavaScript SDK
+See the SDK documentation for details and examples of how to use the relevant methods to query this endpoint.
+
+Retrieve a map's WMTS document
+get
+https://api.mapbox.com/styles/v1/{username}/{style_id}/wmts
+Mapbox supports access via the WMTS standard, which lets you use maps with desktop and online GIS software like ArcMap and QGIS.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style for which to return a WMTS document.
+Example request: Retrieve a map's WMTS document
+curl "https://api.mapbox.com/styles/v1/mapbox/streets-v12/wmts?access_token=pk.eyJ1IjoiYXZpODdrYXkiLCJhIjoiY205anR3cmh2MGc1NzJsb2FzMjZydDhsdiJ9.xB2k8GD6iZYbW63nQUmOhw"
+Response: Retrieve a map's WMTS document
+The response to a request to this endpoint will be a map's WMTS document.
+
+Sprites
+Sprites are the way that Mapbox GL JS and the Mapbox mobile SDKs efficiently request and show images. Sprites are collections of images that can be used in styles as icons or patterns in symbol layers. An image in a sprite can be an icon, a pattern, or an illustration. These SVG images can be added and removed from the sprite at will. The Styles API automatically collects these SVG images and renders them into a single PNG image and a JSON document that describes where each image is positioned.
+
+The sprite JSON document is specified as part of the Mapbox Style Specification.
+
+Sprites are managed on a per-style basis. Each sprite belongs to a style, so the sprite limit of 1,000 images is also a per-style limit.
+
+Sprite images are PNG-8 files that are optimized to have a limited color palette. Usually, visual differences from the source SVG files are not noticeable but you may in some cases notice slight changes in colors or dithering when inspecting sprite images closely.
+
+All sprite-related API methods require a {style_id} parameter that refers to the style to which the sprite belongs.
+
+Retrieve a sprite image or JSON
+get
+https://api.mapbox.com/styles/v1/{username}/{style_id}/{sprite_id}/sprite{@2x}.{format}
+styles:readtoken scope
+Retrieve a sprite image or its JSON document from a Mapbox style.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to which the sprite belongs.
+You can further refine the results from this endpoint with the following optional parameters:
+
+Optional parameters	Type	Description
+sprite_id	string	The ID of the immutable sprite. To learn how to find a sprite's unique ID, see the How to retrieve a sprite ID section.
+@2x	string	Render the sprite at a @2x, @3x, or @4x scale factor for high-density displays. Decimal values such as @2.5x are also supported.
+format	string	By default, this endpoint returns a sprite's JSON document. Specify .png to return the sprite image instead.
+Example request: Retrieve a sprite image or JSON
+# Request the sprite image as a png
+
+curl "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/{style_id}/sprite.png?access_token=pk.eyJ1IjoiYXZpODdrYXkiLCJhIjoiY205anR3cmh2MGc1NzJsb2FzMjZydDhsdiJ9.xB2k8GD6iZYbW63nQUmOhw"
+
+# Request json for a 3x scale sprite
+
+curl "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/{style_id}/sprite@3x?access_token=pk.eyJ1IjoiYXZpODdrYXkiLCJhIjoiY205anR3cmh2MGc1NzJsb2FzMjZydDhsdiJ9.xB2k8GD6iZYbW63nQUmOhw"
+
+# Request the immutable sprite image as a png
+
+curl "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/{style_id}/{sprite_id}/sprite.png?access_token=pk.eyJ1IjoiYXZpODdrYXkiLCJhIjoiY205anR3cmh2MGc1NzJsb2FzMjZydDhsdiJ9.xB2k8GD6iZYbW63nQUmOhw"
+Response: Retrieve a sprite image or JSON
+The response to a successful request to this endpoint is either a sprite image or its JSON response, depending on which was requested.
+
+Example response: Retrieve a sprite image or JSON
+{
+  "default_marker": {
+    "width": 20,
+    "height": 50,
+    "x": 0,
+    "y": 0,
+    "pixelRatio": 2
+  },
+  "secondary_marker": {
+    "width": 20,
+    "height": 50,
+    "x": 20,
+    "y": 0,
+    "pixelRatio": 2
+  }
+}
+How to retrieve a sprite ID
+Because sprites tend to stay static for long durations, we offer immutable sprites with unique URLs. This allows us to have long cache durations resulting in faster load times. This also prevents styles from breaking if the sprites are updated "beneath" them. These unique URLs are possible because of the sprite_id that can be placed in the URL.
+
+After you have uploaded your sprite images using the Add new image to sprite endpoint or the Add multiple new images to sprite endpoint, make a request to update your style. The response payload for the style update will contain the unique sprite URL on the sprite payload.
+
+Note: Mapbox Studio does all this work for you automatically.
+
+Supported libraries: Retrieve a sprite image or JSON
+Mapbox wrapper libraries help you integrate Mapbox APIs into your existing application. The following SDK supports this endpoint:
+
+Mapbox JavaScript SDK
+See the SDK documentation for details and examples of how to use the relevant methods to query this endpoint.
+
+Add new image to sprite
+put
+https://api.mapbox.com/styles/v1/{username}/{style_id}/sprite/{icon_name}
+styles:writetoken scope
+Add a new image to an existing sprite in a Mapbox style. The request body should be raw SVG data.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to which the sprite belongs.
+icon_name	string	The name of the new image that is being added to the style.
+Example request: Add new image to sprite
+# Add a new image (`aerialway`) to an existing sprite
+
+curl -X PUT \
+  "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/{style_id}/sprite/aerialway?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN" \
+  --data @aerialway-12.svg
+Response: Add new image to sprite
+The response to a successful request to this endpoint will be the updated sprite.
+
+Example response: Add new image to sprite
+{
+  "newsprite": {
+    "width": 1200,
+    "height": 600,
+    "x": 0,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "default_marker": {
+    "width": 20,
+    "height": 50,
+    "x": 0,
+    "y": 600,
+    "pixelRatio": 1
+  }
+}
+Supported libraries: Add new image to sprite
+Mapbox wrapper libraries help you integrate Mapbox APIs into your existing application. The following SDK supports this endpoint:
+
+Mapbox JavaScript SDK
+See the SDK documentation for details and examples of how to use the relevant methods to query this endpoint.
+
+Add multiple new images to sprite
+post
+https://api.mapbox.com/styles/v1/{username}/{style_id}/sprite
+styles:writetoken scope
+Add a batch of new images to an existing sprite in a Mapbox style. The request body must be multipart form data that uses the form field name images to reference the SVG image files.
+
+A request can contain a maximum of 25 image files. Each individual image file in a request must be under 30 KB.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to which the sprite belongs.
+Example request: Add multiple new images to sprite
+# Add two new images from local files ('star.svg' and 'square.svg') to an existing sprite:
+
+curl -F images=@star.svg -F images=@square.svg
+  "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/{style_id}/sprite?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN"
+Response: Add multiple new images to sprite
+The response to a successful request to this endpoint will be the updated sprite.
+
+Example response: Add multiple new images to sprite
+{
+  "star": {
+    "width": 15,
+    "height": 15,
+    "x": 0,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "square": {
+    "width": 15,
+    "height": 15,
+    "x": 0,
+    "y": 15,
+    "pixelRatio": 1
+  },
+  "default_marker": {
+    "width": 20,
+    "height": 50,
+    "x": 0,
+    "y": 65,
+    "pixelRatio": 1
+  }
+}
+Delete image from sprite
+delete
+https://api.mapbox.com/styles/v1/{username}/{style_id}/sprite/{icon_name}
+styles:writetoken scope
+Remove an image from an existing sprite.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to which the sprite belongs.
+icon_name	string	The name of the new image to delete from the style.
+Example request: Delete image from sprite
+curl -X DELETE "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/{style_id}/sprite/{icon_name}?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN"
+Response: Delete image from sprite
+The response to a successful request to this endpoint will be the modified sprite.
+
+Example response: Delete image from sprite
+{
+  "default_marker": {
+    "width": 20,
+    "height": 50,
+    "x": 0,
+    "y": 600,
+    "pixelRatio": 1
+  },
+  "secondary_marker": {
+    "width": 20,
+    "height": 50,
+    "x": 20,
+    "y": 600,
+    "pixelRatio": 1
+  }
+}
+Supported libraries: Delete image from sprite
+Mapbox wrapper libraries help you integrate Mapbox APIs into your existing application. The following SDK supports this endpoint:
+
+Mapbox JavaScript SDK
+See the SDK documentation for details and examples of how to use the relevant methods to query this endpoint.
+
+Delete multiple images from sprite
+delete
+https://api.mapbox.com/styles/v1/{username}/{style_id}/sprite
+styles:writetoken scope
+Remove a batch of images from an existing sprite.
+
+Required parameters	Type	Description
+username	string	The username of the account to which the style belongs.
+style_id	string	The ID of the style to which the sprite belongs.
+The request body should be a JSON-encoded array of the names of the images you want to delete from the specified sprite.
+
+Example request: Delete multiple images from sprite
+# Delete two images named "star" and "square" from an existing sprite:
+
+curl -X DELETE "https://api.mapbox.com/styles/v1/YOUR_MAPBOX_USERNAME/{style_id}/sprite/?access_token=YOUR_SECRET_MAPBOX_ACCESS_TOKEN" \
+  --data '["star", "square"]' \
+  --header "Content-Type:application/json"
+Response: Delete multiple images from sprite
+The response to a successful request to this endpoint will be the modified sprite.
+
+Example response: Delete multiple images from sprite
+{
+  "default_marker": {
+    "width": 20,
+    "height": 50,
+    "x": 0,
+    "y": 600,
+    "pixelRatio": 1
+  },
+  "secondary_marker": {
+    "width": 20,
+    "height": 50,
+    "x": 20,
+    "y": 600,
+    "pixelRatio": 1
+  }
+}
+Styles API errors
+Response body message	HTTP status code	Description
+Not Authorized - Invalid Token	401	Check the access token you used in the query.
+This endpoint requires a token with {scope} scope	403	The access token used in the query needs the specified scope.
+Forbidden	403	You do not have permission to view styles for the requested account.
+
+In some cases, using an access tokens with URL restrictions can also result in a 403 error. For more information, see our Token management guide.
+Style not found	404	Check the style ID used in the query.
+Failed to create style	422	Check the syntax of the JSON in your request body when creating a style.
+Styles API restrictions and limits
+The default rate limit for the Mapbox Styles API endpoint is 2,000 requests per minute. If you require a higher rate limit, contact us.
+If you exceed the rate limit, you will receive an HTTP 429 Too Many Requests response. For information on rate limit headers, see the Rate limit headers section.
+Styles cannot reference more than 15 sources.
+Styles cannot be larger than 1 MB. This limit only applies to the style document itself, not the sprites, fonts, tilesets, or other resources it references.
+An account is allowed to have an unlimited number of styles regardless of its pricing plan.
+Responses from the Styles API set both the device and CDN TTLs to 15 minutes.
+For general information on caching, see the Maps APIs caching troubleshooting guide.
+Styles API sprites restrictions and limits
+Each image must be smaller than 400 KB.
+Mapbox supports most, but not all, SVG properties. These limits are described in our SVG troubleshooting guide.
+Images can be up to 512 pixels in each dimension.
+Image names must be fewer than 255 characters in length.
+Sprites can contain up to 1,000 images.
+Was this page helpful?
