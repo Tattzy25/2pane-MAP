@@ -13,20 +13,6 @@ interface ShopResult {
   distance?: number;
 }
 
-// Tattoo-related keywords to filter results
-const TATTOO_KEYWORDS = [
-  'tattoo',
-  'tattoo studio',
-  'tattoo shop',
-  'tattoo parlor',
-  'tattoo parlour',
-  'body art',
-  'piercing',
-  'ink',
-  'tattoo artist',
-  'tattooist',
-];
-
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const lat = searchParams.get('lat');
@@ -42,48 +28,38 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Search for tattoo shops using Mapbox Search Box API
+    const searchTerm = query || 'tattoo shop';
+    // Proximity format: longitude,latitude (ip or coordinates)
     const proximity = `${lng},${lat}`;
     const sessionToken = Date.now().toString();
     
-    // Always search for tattoo-related terms - combine user query with tattoo context
-    let searchTerm = 'tattoo shop';
-    if (query && query.trim()) {
-      // If user searches for something, append "tattoo" to ensure tattoo results
-      searchTerm = `${query.trim()} tattoo`;
-    }
+    // Use poi_category for more accurate results
+    const searchUrl = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(searchTerm)}&proximity=${proximity}&limit=10&poi_category=tattoo_parlour&access_token=${MAPBOX_TOKEN}&session_token=${sessionToken}`;
     
-    // Primary search with tattoo_parlour category
-    const primaryUrl = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(searchTerm)}&proximity=${proximity}&limit=15&poi_category=tattoo_parlour&access_token=${MAPBOX_TOKEN}&session_token=${sessionToken}`;
+    console.log('Search URL:', searchUrl);
     
-    const primaryResponse = await fetch(primaryUrl);
-    const primaryData = await primaryResponse.json();
+    const searchResponse = await fetch(searchUrl);
+    const searchData = await searchResponse.json();
     
-    let suggestions = primaryData.suggestions || [];
-    
-    // Fallback: if no results with category filter, try without it but still use tattoo term
-    if (suggestions.length === 0) {
-      const fallbackUrl = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(searchTerm)}&proximity=${proximity}&limit=15&access_token=${MAPBOX_TOKEN}&session_token=${sessionToken}`;
+    console.log('Search results:', searchData);
+
+    if (!searchData.suggestions || searchData.suggestions.length === 0) {
+      // Fallback: try without poi_category filter
+      const fallbackUrl = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(searchTerm)}&proximity=${proximity}&limit=10&access_token=${MAPBOX_TOKEN}&session_token=${sessionToken}`;
       const fallbackResponse = await fetch(fallbackUrl);
       const fallbackData = await fallbackResponse.json();
-      suggestions = fallbackData.suggestions || [];
-    }
-    
-    // Filter suggestions to only include tattoo-related results
-    const tattooSuggestions = suggestions.filter((suggestion: any) => {
-      const name = (suggestion.name || '').toLowerCase();
-      const address = (suggestion.place_formatted || suggestion.address || '').toLowerCase();
-      const fullText = `${name} ${address}`;
       
-      return TATTOO_KEYWORDS.some(keyword => fullText.includes(keyword.toLowerCase()));
-    });
-
-    if (tattooSuggestions.length === 0) {
-      return NextResponse.json({ shops: [] });
+      if (!fallbackData.suggestions || fallbackData.suggestions.length === 0) {
+        return NextResponse.json({ shops: [] });
+      }
+      
+      searchData.suggestions = fallbackData.suggestions;
     }
 
     // Get detailed info for each suggestion using retrieve endpoint
     const shops: (ShopResult | null)[] = await Promise.all(
-      tattooSuggestions.slice(0, 10).map(async (suggestion: any) => {
+      searchData.suggestions.slice(0, 10).map(async (suggestion: any) => {
         const retrieveUrl = `https://api.mapbox.com/search/searchbox/v1/retrieve/${suggestion.mapbox_id}?access_token=${MAPBOX_TOKEN}&session_token=${sessionToken}`;
         
         try {
@@ -93,19 +69,6 @@ export async function GET(request: NextRequest) {
           if (retrieveData.features && retrieveData.features[0]) {
             const feature = retrieveData.features[0];
             const coords: [number, number] = feature.geometry.coordinates;
-            
-            // Double-check that this is actually a tattoo shop
-            const name = (feature.properties?.name || '').toLowerCase();
-            const categories = feature.properties?.poi_category || [];
-            const categoryStr = categories.join(' ').toLowerCase();
-            
-            const isTattooRelated = TATTOO_KEYWORDS.some(keyword => 
-              name.includes(keyword.toLowerCase()) || categoryStr.includes(keyword.toLowerCase())
-            );
-            
-            if (!isTattooRelated) {
-              return null;
-            }
             
             // Calculate distance using Haversine formula
             const distance = calculateDistance(
@@ -122,7 +85,7 @@ export async function GET(request: NextRequest) {
               place_formatted: feature.properties.place_formatted || '',
               coordinates: coords,
               phone: feature.properties.tel || undefined,
-              categories: categories.length > 0 ? categories : ['Tattoo Studio'],
+              categories: feature.properties.poi_category || ['Tattoo Studio'],
               distance: Math.round(distance * 10) / 10,
             };
           }

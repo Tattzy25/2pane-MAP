@@ -1,52 +1,33 @@
 "use client";
 
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
-import { Kbd } from "@/components/ui/kbd";
-import { SearchIcon } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useShops } from "@/components/shop-context";
-import { AddressAutofill } from "@mapbox/search-js-react";
-
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+import { SearchIcon, Loader2 } from "lucide-react";
 
 export function KbdInputGroup() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMac, setIsMac] = useState(false);
-  const { fetchShops, origin } = useShops();
+  const { fetchShops, origin, isLoading, setOrigin } = useShops();
 
-  // Detect if Mac for keyboard shortcut display
   useEffect(() => {
     setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0);
   }, []);
 
-  // Handle search when user selects an address from autofill
-  const handleRetrieve = useCallback((feature: any) => {
-    if (feature && feature.geometry && feature.geometry.coordinates) {
-      const [lng, lat] = feature.geometry.coordinates;
-      // Search for tattoo shops near the selected location
-      fetchShops(lat, lng, searchQuery.trim() || "tattoo");
-    }
-  }, [searchQuery, fetchShops]);
-
-  // Handle manual search with Enter key
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      // Use origin if available, otherwise use default LA location
-      if (origin) {
-        fetchShops(origin[1], origin[0], searchQuery.trim() || "tattoo");
-      } else {
-        // Default to LA coordinates
-        fetchShops(34.0522, -118.2437, searchQuery.trim() || "tattoo");
-      }
+  const handleSearch = () => {
+    if (origin) {
+      fetchShops(origin[1], origin[0], searchQuery.trim() || "tattoo");
+    } else {
+      fetchShops(34.0522, -118.2437, searchQuery.trim() || "tattoo");
     }
   };
 
-  // Keyboard shortcut (Cmd/Ctrl + K) to focus search
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if ((isMac ? e.metaKey : e.ctrlKey) && e.key === 'k') {
@@ -61,33 +42,33 @@ export function KbdInputGroup() {
   }, [isMac]);
 
   return (
-    <div className="flex w-full max-w-xl flex-col gap-6">
-      <InputGroup className="h-12 bg-zinc-900/80 border-zinc-700/50 backdrop-blur-sm">
-        <InputGroupAddon className="text-zinc-400">
+    <div className="flex w-full max-w-sm items-center gap-2">
+      <div className="relative flex-1">
+        <input
+          type="text"
+          placeholder="Search tattoo shops..."
+          className="h-12 w-full rounded-l-xl bg-zinc-900/80 border border-zinc-700/50 border-r-0 px-4 pr-20 text-base text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 backdrop-blur-sm"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-zinc-500 text-xs pointer-events-none">
+          <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">{isMac ? '⌘' : 'Ctrl'}</kbd>
+          <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">K</kbd>
+        </div>
+      </div>
+      <button
+        onClick={handleSearch}
+        disabled={isLoading}
+        className="h-12 px-5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-r-xl font-medium transition-colors flex items-center gap-2"
+        aria-label="Search"
+      >
+        {isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
           <SearchIcon className="h-5 w-5" />
-        </InputGroupAddon>
-        <AddressAutofill
-          accessToken={MAPBOX_TOKEN}
-          onRetrieve={(e) => handleRetrieve(e)}
-          options={{
-            countries: ['US'],
-            language: 'en',
-          }}
-        >
-          <InputGroupInput 
-            placeholder="Search location or tattoo shops..." 
-            className="text-base text-white placeholder:text-zinc-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            autoComplete="address-line1"
-          />
-        </AddressAutofill>
-        <InputGroupAddon align="inline-end" className="text-zinc-500">
-          <Kbd className="text-zinc-400 bg-zinc-800 border-zinc-700">{isMac ? '⌘' : 'Ctrl'}</Kbd>
-          <Kbd className="text-zinc-400 bg-zinc-800 border-zinc-700">K</Kbd>
-        </InputGroupAddon>
-      </InputGroup>
+        )}
+      </button>
     </div>
   );
 }

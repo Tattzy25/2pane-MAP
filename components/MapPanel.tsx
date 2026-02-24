@@ -61,10 +61,7 @@ export function MapPanel({ userLocation }: MapPanelProps) {
                 filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
             `;
             
-            // Use the tattoo-studio.gif
-            el.innerHTML = `
-                <img src="/tattoo-studio.gif" width="40" height="40" style="pointer-events:none;" />
-            `;
+            el.innerHTML = `<img src="/tattoo-studio.gif" width="40" height="40" style="pointer-events:none;" />`;
 
             // Highlight selected shop
             const isSelected = selectedShop?.id === shop.id;
@@ -73,18 +70,34 @@ export function MapPanel({ userLocation }: MapPanelProps) {
                 el.style.filter = 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.9))';
             }
 
-            // Click to select and get directions - zoom to shop
+            // Click to select and get directions
             el.addEventListener('click', () => {
                 if (selectedShop?.id === shop.id) {
                     setSelectedShop(null);
                 } else {
                     setSelectedShop(shop);
-                    // Zoom to the shop location
+
+                    const targetCenter = shop.coordinates as [number, number];
+
+                    // 1) Zoom way out (universe / globe view)
                     map.current?.flyTo({
-                        center: shop.coordinates as [number, number],
-                        zoom: 16,
-                        duration: 1500,
+                        center: targetCenter,
+                        zoom: 1,          // very far out
+                        speed: 0.2,       // slow
+                        curve: 1,         // strong zoom-out curve
+                        essential: true,
                     });
+
+                    // 2) After that finishes, zoom all the way in
+                    setTimeout(() => {
+                        map.current?.flyTo({
+                            center: targetCenter,
+                            zoom: 16,       // close-in street level
+                            speed: 0.8,
+                            curve: 1.2,
+                            essential: true,
+                        });
+                    }, 4000); // match this to how long the first fly feels (ms)
                 }
             });
 
@@ -95,7 +108,7 @@ export function MapPanel({ userLocation }: MapPanelProps) {
             markers.current.push(marker);
         });
 
-        // Fit bounds when shops list changes - always zoom to show all shops
+        // Fit bounds when shops list changes
         if (shops.length > 0 && map.current) {
             const bounds = new mapboxgl.LngLatBounds();
             shops.forEach(r => r.coordinates && bounds.extend(r.coordinates));
@@ -114,11 +127,10 @@ export function MapPanel({ userLocation }: MapPanelProps) {
         
         const el = document.createElement('div');
         el.style.cssText = `
-            width:16px;height:16px;border-radius:50%;
+            width:20px;height:20px;border-radius:50%;
             background:rgba(59, 130, 246, 0.9);
             border:3px solid rgba(255,255,255,0.9);
             box-shadow:0 0 20px rgba(59, 130, 246, 0.5);
-            cursor:pointer;
         `;
         
         userMarkerRef.current = new mapboxgl.Marker(el)
@@ -179,8 +191,13 @@ export function MapPanel({ userLocation }: MapPanelProps) {
             });
 
             if (directions.geometry.coordinates.length > 0) {
-                const bounds = new mapboxgl.LngLatBounds();
-                directions.geometry.coordinates.forEach((coord: [number, number]) => bounds.extend(coord));
+                const coordinates = directions.geometry.coordinates;
+                // Create a 'LngLatBounds' with both corners at the first coordinate
+                const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
+                // Extend the 'LngLatBounds' to include every coordinate
+                for (const coord of coordinates) {
+                    bounds.extend(coord as [number, number]);
+                }
                 map.current.fitBounds(bounds, { padding: 100, maxZoom: 15, duration: 800 });
             }
         }
